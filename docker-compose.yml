@@ -1,0 +1,9 @@
+mongo:
+  image: mongo
+
+backend:
+  image: bargenson/clip-server
+  links:
+   - mongo
+  ports:
+   - "8080:8080"

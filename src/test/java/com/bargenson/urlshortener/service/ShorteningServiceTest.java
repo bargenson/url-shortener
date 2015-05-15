@@ -47,7 +47,7 @@ public class ShorteningServiceTest {
         URL urlToShorten = new URL("http://google.fr");
         String simpleId = "qwerty1234";
         when(urlIdentifierGenerator.generate()).thenReturn(simpleId);
-        when(registeredUrlDao.findRegisteredUrl(urlToShorten)).thenThrow(UnknownShortenedUrlException.class);
+        when(registeredUrlDao.findRegisteredUrl(urlToShorten)).thenThrow(new UnknownShortenedUrlException(""));
 
         // When
         URL shortenedUrl = service.shortenUrl(urlToShorten.toString());
