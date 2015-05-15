@@ -1,18 +1,21 @@
 package com.bargenson.urlshortener.model;
 
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.net.URL;
 
 /**
  * Created by bargenson on 2015-05-14.
  */
+@Document
 public class RegisteredUrl {
 
     private final String id;
-    private final URL value;
+    private final URL url;
 
-    public RegisteredUrl(String id, URL value) {
+    public RegisteredUrl(String id, URL url) {
         this.id = id;
-        this.value = value;
+        this.url = url;
     }
 
     public String getId() {
@@ -20,7 +23,7 @@ public class RegisteredUrl {
     }
 
     public URL getUrl() {
-        return value;
+        return url;
     }
 
 }
