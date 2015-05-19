@@ -11,9 +11,7 @@ import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.runtime.Network;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.net.URL;
@@ -34,28 +32,32 @@ public class UrlShortenerIntegrationTest {
 
     public static final String DB_NAME = "clip";
     public static final String COLLECTION_NAME = "registeredUrl";
-    public static final String HOST = "localhost";
 
-    private Properties properties;
+    private static MongodExecutable mongodExecutable;
+    private static ApplicationServer applicationServer;
 
-    private MongodExecutable mongodExecutable;
-    private ApplicationServer applicationServer;
+    private static Properties properties;
 
-    @Before
-    public void setUp() throws Exception {
-        startMongo();
+    @BeforeClass
+    public static void classSetUp() throws Exception {
+        configureRestAssured();
         startApplicationServer();
-        RestAssured.config = newConfig().redirect(redirectConfig().followRedirects(false));
+        startMongo();
     }
 
-    @After
-    public void tearDown() {
+    @AfterClass
+    public static void classTearDown() throws Exception {
         stopApplicationServer();
         stopMango();
     }
 
+    @After
+    public void tearDown() throws IOException {
+        dropUrlCollection();
+    }
+
     @Test
-    public void should_createNewShortenedUrl() throws IOException {
+    public void should_createNewShortenedUrl_when_postedUrlDoesNotExist() throws IOException {
         // Given
         String url = "http://www.google.fr?plop=*&truc=$";
         given().param("url", url)
@@ -71,7 +73,7 @@ public class UrlShortenerIntegrationTest {
     }
 
     @Test
-    public void should_reuseExistingShortenedUrl() throws IOException {
+    public void should_reuseExistingShortenedUrl_when_postedUrlExists() throws IOException {
         // Given
         final RegisteredUrl existingUrl = new RegisteredUrl("1234", new URL("http://www.google.fr"));
         createUrlDocument(existingUrl);
@@ -85,7 +87,7 @@ public class UrlShortenerIntegrationTest {
     }
 
     @Test
-    public void should_redirectOnTheOriginalUrl() throws IOException {
+    public void should_redirectOnTheOriginalUrl_when_requestedUrlExists() throws IOException {
         // Given
         final RegisteredUrl existingUrl = new RegisteredUrl("1234", new URL("http://www.google.fr"));
         createUrlDocument(existingUrl);
@@ -99,7 +101,7 @@ public class UrlShortenerIntegrationTest {
     }
 
     @Test
-    public void should_return404IfUrlDoesNotExist() throws IOException {
+    public void should_return404_when_requestedUrlDoesNotExist() throws IOException {
         // Given
         given()
 
@@ -110,7 +112,11 @@ public class UrlShortenerIntegrationTest {
                 .then().statusCode(404);
     }
 
-    private void startMongo() throws IOException {
+    private static void configureRestAssured() {
+        RestAssured.config = newConfig().redirect(redirectConfig().followRedirects(false));
+    }
+
+    private static void startMongo() throws IOException {
         MongodStarter starter = MongodStarter.getDefaultInstance();
         IMongodConfig mongodConfig = new MongodConfigBuilder()
                 .version(Version.Main.PRODUCTION)
@@ -120,8 +126,8 @@ public class UrlShortenerIntegrationTest {
         mongodExecutable.start();
     }
 
-    private void createUrlDocument(RegisteredUrl registeredUrl) throws IOException {
-        DBCollection col = getDbCollection();
+    private static void createUrlDocument(RegisteredUrl registeredUrl) throws IOException {
+        DBCollection col = getUrlCollection();
         col.save(
                 BasicDBObjectBuilder.start()
                         .add("_id", registeredUrl.getId())
@@ -130,48 +136,52 @@ public class UrlShortenerIntegrationTest {
         );
     }
 
-    private DBObject getUrlDocumentByUrl(String url) throws IOException {
-        DBCollection col = getDbCollection();
+    private static DBObject getUrlDocumentByUrl(String url) throws IOException {
+        DBCollection col = getUrlCollection();
         return col.findOne(
                 BasicDBObjectBuilder.start().add("url", url).get()
         );
     }
 
-    private DBCollection getDbCollection() throws IOException {
+    private static DBCollection getUrlCollection() throws IOException {
         MongoClient mongo = new MongoClient(getMongoHost(), getMongoPort());
         DB db = mongo.getDB(DB_NAME);
         return db.createCollection(COLLECTION_NAME, null);
     }
 
-    private String getMongoHost() throws IOException {
+    private static void dropUrlCollection() throws IOException {
+        getUrlCollection().drop();
+    }
+
+    private static String getMongoHost() throws IOException {
         return getApplicationProperty("mongodb.host");
     }
 
-    private String getApplicationBaseUrl() throws IOException {
+    private static String getApplicationBaseUrl() throws IOException {
         return getApplicationProperty("baseUrl");
     }
 
-    private int getMongoPort() throws IOException {
+    private static int getMongoPort() throws IOException {
         return Integer.parseInt(getApplicationProperty("mongodb.port"));
     }
 
-    private void stopMango() {
+    private static void stopMango() {
         mongodExecutable.stop();
     }
 
-    private void startApplicationServer() throws Exception {
+    private static void startApplicationServer() throws Exception {
         applicationServer = new ApplicationServer();
         applicationServer.start();
     }
 
-    private void stopApplicationServer() {
+    private static void stopApplicationServer() {
         applicationServer.stop();
     }
 
-    private String getApplicationProperty(String name) throws IOException {
+    private static String getApplicationProperty(String name) throws IOException {
         if (properties == null) {
             properties = new Properties();
-            properties.load(getClass().getClassLoader().getResourceAsStream("application.properties"));
+            properties.load(UrlShortenerIntegrationTest.class.getClassLoader().getResourceAsStream("application.properties"));
         }
         return (String) properties.get(name);
     }
