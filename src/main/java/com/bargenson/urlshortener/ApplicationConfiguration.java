@@ -26,7 +26,7 @@ import java.net.URL;
 @Configuration
 @PropertySource("classpath:application.properties")
 @ComponentScan("com.bargenson.urlshortener")
-public class Application {
+public class ApplicationConfiguration {
 
     @Value("${baseUrl}")
     private String baseUrl;
@@ -57,30 +57,6 @@ public class Application {
     @Bean
     static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
         return new PropertySourcesPlaceholderConfigurer();
-    }
-
-
-    public static void main(String[] args) throws Exception {
-        Server server = new Server(8080);
-
-        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-        context.setContextPath("/");
-
-        ServletHolder jerseyServlet = context.addServlet(org.glassfish.jersey.servlet.ServletContainer.class, "/*");
-        jerseyServlet.setInitOrder(0);
-        jerseyServlet.setInitParameter("jersey.config.server.provider.classnames", UrlResource.class.getCanonicalName());
-        context.addEventListener(new ContextLoaderListener());
-        context.setInitParameter("contextClass", AnnotationConfigWebApplicationContext.class.getName());
-        context.setInitParameter("contextConfigLocation", Application.class.getName());
-
-        server.setHandler(context);
-
-        try {
-            server.start();
-            server.join();
-        } finally {
-            server.destroy();
-        }
     }
 
 }

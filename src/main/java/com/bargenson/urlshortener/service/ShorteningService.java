@@ -8,8 +8,10 @@ import com.bargenson.urlshortener.model.RegisteredUrl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 
 /**
  * Created by bargenson on 2015-05-14.
